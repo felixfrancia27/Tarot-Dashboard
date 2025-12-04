@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { LayoutComponent } from '../../components/layout/layout.component';
 import { ElevenLabsService } from '../../services/elevenlabs.service';
+import { AuthService } from '../../services/auth.service';
 import { Conversation } from '../../models/conversation.model';
 
 @Component({
@@ -40,18 +41,21 @@ import { Conversation } from '../../models/conversation.model';
           <!-- Encabezado -->
           <header class="detail-header">
             <div class="header-info">
+              <div class="agent-badge">
+                <span class="agent-icon">🔮</span>
+                <span class="agent-name">{{ nombreAgente }}</span>
+              </div>
               <h1>{{ nombreLlamada() }}</h1>
               <p class="fecha-llamada">{{ fechaCompleta() }}</p>
             </div>
             <div class="header-actions">
-              @if (conversacion()!.has_audio) {
-                <button class="btn btn-secondary" (click)="reproducirAudio()">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polygon points="5 3 19 12 5 21 5 3"/>
-                  </svg>
-                  Escuchar grabación
-                </button>
-              }
+              <button class="btn btn-secondary btn-disabled" disabled title="Disponible próximamente">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="5 3 19 12 5 21 5 3"/>
+                </svg>
+                Escuchar grabación
+                <span class="coming-soon">Próximamente</span>
+              </button>
             </div>
           </header>
           
@@ -117,7 +121,7 @@ import { Conversation } from '../../models/conversation.model';
                 @for (turno of conversacion()!.transcript; track $index) {
                   <div class="message" [class.user]="turno.role === 'user'" [class.agent]="turno.role === 'agent'">
                     <div class="message-header">
-                      <span class="role">{{ turno.role === 'user' ? '👤 Cliente' : '🔮 Agente' }}</span>
+                      <span class="role">{{ turno.role === 'user' ? '👤 Cliente' : '🔮 ' + nombreAgente }}</span>
                       <span class="time">{{ formatearSegundos(turno.time_in_call_secs) }}</span>
                     </div>
                     <div class="message-content">
@@ -130,6 +134,25 @@ import { Conversation } from '../../models/conversation.model';
             
             <!-- Barra lateral con Análisis -->
             <aside class="detail-sidebar">
+              <!-- Agente que atendió -->
+              <div class="sidebar-card agent-card">
+                <div class="agent-header">
+                  <div class="agent-avatar">🔮</div>
+                  <div class="agent-info-sidebar">
+                    <span class="agent-name-big">{{ nombreAgente }}</span>
+                    <span class="agent-role">Agente de esta llamada</span>
+                  </div>
+                </div>
+                <p class="agent-note">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="16" x2="12" y2="12"/>
+                    <line x1="12" y1="8" x2="12.01" y2="8"/>
+                  </svg>
+                  Puedes tener múltiples agentes configurados
+                </p>
+              </div>
+              
               <!-- Análisis / Resumen -->
               @if (conversacion()!.analysis) {
                 <div class="sidebar-card">
@@ -144,6 +167,9 @@ import { Conversation } from '../../models/conversation.model';
                   @if (conversacion()!.analysis?.transcript_summary) {
                     <div class="analysis-item">
                       <p class="analysis-value summary">{{ conversacion()!.analysis!.transcript_summary }}</p>
+                      <p class="auto-generated-note">
+                        <small>📝 Resumen generado automáticamente por IA</small>
+                      </p>
                     </div>
                   }
                   
@@ -184,11 +210,6 @@ import { Conversation } from '../../models/conversation.model';
               </div>
             </aside>
           </div>
-          
-          <!-- Reproductor de Audio (oculto) -->
-          @if (urlAudio()) {
-            <audio #audioPlayer [src]="urlAudio()" style="display: none;"></audio>
-          }
         }
       </div>
     </app-layout>
@@ -254,7 +275,30 @@ import { Conversation } from '../../models/conversation.model';
       justify-content: space-between;
       align-items: flex-start;
       margin-bottom: 24px;
+    }
+    
+    .agent-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      background: rgba(108, 92, 231, 0.15);
+      border: 1px solid rgba(108, 92, 231, 0.3);
+      border-radius: 20px;
+      margin-bottom: 12px;
       
+      .agent-icon {
+        font-size: 1rem;
+      }
+      
+      .agent-name {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--color-primary-light);
+      }
+    }
+    
+    .header-info {
       h1 {
         font-family: var(--font-display);
         font-size: 1.75rem;
@@ -276,6 +320,28 @@ import { Conversation } from '../../models/conversation.model';
         width: 18px;
         height: 18px;
       }
+    }
+    
+    .btn-disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      position: relative;
+      
+      &:hover {
+        transform: none;
+        box-shadow: none;
+      }
+    }
+    
+    .coming-soon {
+      font-size: 0.65rem;
+      padding: 2px 6px;
+      background: var(--color-warning);
+      color: var(--bg-primary);
+      border-radius: 4px;
+      margin-left: 8px;
+      font-weight: 600;
+      text-transform: uppercase;
     }
     
     .stats-row {
@@ -439,6 +505,61 @@ import { Conversation } from '../../models/conversation.model';
       }
     }
     
+    .agent-card {
+      background: linear-gradient(135deg, rgba(108, 92, 231, 0.1), rgba(162, 155, 254, 0.05));
+      border-color: rgba(108, 92, 231, 0.3);
+    }
+    
+    .agent-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    
+    .agent-avatar {
+      width: 50px;
+      height: 50px;
+      background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+    
+    .agent-info-sidebar {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .agent-name-big {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+    
+    .agent-role {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    
+    .agent-note {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      padding: 10px 12px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: var(--border-radius);
+      
+      svg {
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
+      }
+    }
+    
     .analysis-item {
       margin-bottom: 16px;
       
@@ -466,6 +587,17 @@ import { Conversation } from '../../models/conversation.model';
       &.summary {
         line-height: 1.6;
         color: var(--text-primary);
+      }
+    }
+    
+    .auto-generated-note {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px dashed var(--border-color);
+      
+      small {
+        color: var(--text-muted);
+        font-size: 0.75rem;
       }
     }
     
@@ -536,15 +668,25 @@ export class ConversationDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private servicioElevenLabs = inject(ElevenLabsService);
+  private servicioAuth = inject(AuthService);
   
   conversacion = signal<Conversation | null>(null);
   cargando = signal(false);
   error = signal<string | null>(null);
-  urlAudio = signal<string | null>(null);
   
   private idConversacion = '';
   
+  // Nombre del agente (viene de la configuración del cliente)
+  nombreAgente = 'Luz';
+  
   ngOnInit() {
+    // Obtener nombre del agente desde la sesión
+    const credenciales = this.servicioAuth.getCredentials();
+    if (credenciales?.agentName) {
+      // Extraer solo el primer nombre del agente
+      this.nombreAgente = credenciales.agentName.split(' - ')[0].split('-')[0].trim();
+    }
+    
     this.idConversacion = this.route.snapshot.paramMap.get('id') || '';
     if (!this.idConversacion) {
       this.router.navigate(['/conversations']);
@@ -561,12 +703,6 @@ export class ConversationDetailComponent implements OnInit {
       next: (conversacion) => {
         this.conversacion.set(conversacion);
         this.cargando.set(false);
-        
-        if (conversacion.has_audio) {
-          this.urlAudio.set(
-            this.servicioElevenLabs.getConversationAudioUrl(this.idConversacion)
-          );
-        }
       },
       error: (err) => {
         console.error('Error al cargar conversación:', err);
@@ -578,13 +714,6 @@ export class ConversationDetailComponent implements OnInit {
         this.cargando.set(false);
       }
     });
-  }
-  
-  reproducirAudio() {
-    const url = this.urlAudio();
-    if (url) {
-      window.open(url, '_blank');
-    }
   }
   
   // ========== FORMATEO DE NOMBRES AMIGABLES ==========
@@ -669,17 +798,19 @@ export class ConversationDetailComponent implements OnInit {
     if (!razon) return 'Normal';
     
     const traducciones: Record<string, string> = {
-      'user_ended': 'Cliente finalizó',
-      'agent_ended': 'Agente finalizó',
+      'user_ended': 'El cliente finalizó',
+      'agent_ended': 'El agente finalizó',
       'timeout': 'Tiempo agotado',
-      'error': 'Error',
-      'user_hangup': 'Cliente colgó',
-      'agent_hangup': 'Agente colgó',
-      'normal': 'Normal',
-      'completed': 'Completada',
+      'error': 'Error en la llamada',
+      'user_hangup': 'El cliente colgó',
+      'agent_hangup': 'El agente colgó',
+      'normal': 'Finalización normal',
+      'completed': 'Llamada completada',
       'no_answer': 'Sin respuesta',
-      'busy': 'Ocupado',
-      'failed': 'Fallida'
+      'busy': 'Línea ocupada',
+      'failed': 'Llamada fallida',
+      'call ended by remote party': 'El cliente finalizó la llamada',
+      'call_ended_by_remote_party': 'El cliente finalizó la llamada'
     };
     
     return traducciones[razon.toLowerCase()] || razon;
@@ -716,4 +847,3 @@ export class ConversationDetailComponent implements OnInit {
     }
   }
 }
-
