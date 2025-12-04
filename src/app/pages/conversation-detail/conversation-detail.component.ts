@@ -77,7 +77,7 @@ import { Conversation } from '../../models/conversation.model';
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
               </svg>
               <div class="stat-content">
-                <span class="value">{{ conversacion()!.transcript?.length || 0 }}</span>
+                <span class="value">{{ conversacion()!.transcript.length || 0 }}</span>
                 <span class="label">Mensajes</span>
               </div>
             </div>
@@ -92,18 +92,6 @@ import { Conversation } from '../../models/conversation.model';
               </div>
             </div>
             
-            @if (conversacion()!.metadata.cost !== undefined) {
-              <div class="stat-mini">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <line x1="12" y1="1" x2="12" y2="23"/>
-                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                </svg>
-                <div class="stat-content">
-                  <span class="value cost">\${{ conversacion()!.metadata.cost!.toFixed(4) }}</span>
-                  <span class="label">Costo</span>
-                </div>
-              </div>
-            }
           </div>
           
           <!-- Contenido Principal -->
@@ -177,7 +165,7 @@ import { Conversation } from '../../models/conversation.model';
                     <div class="analysis-item resultado">
                       <span class="analysis-label">Resultado de la llamada</span>
                       <span class="badge badge-lg" [ngClass]="conversacion()!.analysis!.call_successful === 'success' ? 'badge-success' : 'badge-warning'">
-                        {{ traducirResultado(conversacion()!.analysis!.call_successful) }}
+                        {{ traducirResultado(conversacion()!.analysis!.call_successful || 'unknown') }}
                       </span>
                     </div>
                   }
