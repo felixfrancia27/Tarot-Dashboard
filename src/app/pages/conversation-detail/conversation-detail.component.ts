@@ -1,9 +1,10 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { LayoutComponent } from '../../components/layout/layout.component';
 import { ElevenLabsService } from '../../services/elevenlabs.service';
 import { AuthService } from '../../services/auth.service';
+import { I18nService } from '../../services/i18n.service';
 import { Conversation } from '../../models/conversation.model';
 
 @Component({
@@ -18,13 +19,13 @@ import { Conversation } from '../../models/conversation.model';
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="15 18 9 12 15 6"/>
           </svg>
-          Volver a conversaciones
+          {{ t().detail_back }}
         </a>
         
         @if (cargando()) {
           <div class="loading-state">
             <div class="spinner"></div>
-            <p>Cargando conversación...</p>
+            <p>{{ t().common_loading }}</p>
           </div>
         } @else if (error()) {
           <div class="error-state">
@@ -33,9 +34,9 @@ import { Conversation } from '../../models/conversation.model';
               <line x1="12" y1="8" x2="12" y2="12"/>
               <line x1="12" y1="16" x2="12.01" y2="16"/>
             </svg>
-            <h3>Error al cargar la conversación</h3>
+            <h3>{{ textoErrorCarga() }}</h3>
             <p>{{ error() }}</p>
-            <button class="btn btn-primary" (click)="cargarConversacion()">Reintentar</button>
+            <button class="btn btn-primary" (click)="cargarConversacion()">{{ t().common_retry }}</button>
           </div>
         } @else if (conversacion()) {
           <!-- Encabezado -->
@@ -49,12 +50,12 @@ import { Conversation } from '../../models/conversation.model';
               <p class="fecha-llamada">{{ fechaCompleta() }}</p>
             </div>
             <div class="header-actions">
-              <button class="btn btn-secondary btn-disabled" disabled title="Disponible próximamente">
+              <button class="btn btn-secondary btn-disabled" disabled [title]="t().detail_coming_soon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polygon points="5 3 19 12 5 21 5 3"/>
                 </svg>
-                Escuchar grabación
-                <span class="coming-soon">Próximamente</span>
+                {{ t().detail_listen_recording }}
+                <span class="coming-soon">{{ t().detail_coming_soon }}</span>
               </button>
             </div>
           </header>
@@ -68,7 +69,7 @@ import { Conversation } from '../../models/conversation.model';
               </svg>
               <div class="stat-content">
                 <span class="value">{{ formatearDuracion(conversacion()!.metadata.call_duration_secs) }}</span>
-                <span class="label">Duración</span>
+                <span class="label">{{ t().detail_duration }}</span>
               </div>
             </div>
             
@@ -78,7 +79,7 @@ import { Conversation } from '../../models/conversation.model';
               </svg>
               <div class="stat-content">
                 <span class="value">{{ conversacion()!.transcript.length || 0 }}</span>
-                <span class="label">Mensajes</span>
+                <span class="label">{{ t().detail_messages }}</span>
               </div>
             </div>
             
@@ -88,7 +89,7 @@ import { Conversation } from '../../models/conversation.model';
               </span>
               <div class="stat-content">
                 <span class="value">{{ traducirRazonFinalizacion(conversacion()!.metadata.termination_reason) }}</span>
-                <span class="label">Finalización</span>
+                <span class="label">{{ t().detail_termination }}</span>
               </div>
             </div>
             
@@ -102,14 +103,14 @@ import { Conversation } from '../../models/conversation.model';
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                 </svg>
-                Transcripción de la llamada
+                {{ t().detail_transcription }}
               </h2>
               
               <div class="transcript-container">
                 @for (turno of conversacion()!.transcript; track $index) {
                   <div class="message" [class.user]="turno.role === 'user'" [class.agent]="turno.role === 'agent'">
                     <div class="message-header">
-                      <span class="role">{{ turno.role === 'user' ? '👤 Cliente' : '🔮 ' + nombreAgente }}</span>
+                      <span class="role">{{ turno.role === 'user' ? textoCliente() : '🔮 ' + nombreAgente }}</span>
                       <span class="time">{{ formatearSegundos(turno.time_in_call_secs) }}</span>
                     </div>
                     <div class="message-content">
@@ -128,7 +129,7 @@ import { Conversation } from '../../models/conversation.model';
                   <div class="agent-avatar">🔮</div>
                   <div class="agent-info-sidebar">
                     <span class="agent-name-big">{{ nombreAgente }}</span>
-                    <span class="agent-role">Agente de esta llamada</span>
+                    <span class="agent-role">{{ t().detail_agent_card_subtitle }}</span>
                   </div>
                 </div>
                 <p class="agent-note">
@@ -137,7 +138,7 @@ import { Conversation } from '../../models/conversation.model';
                     <line x1="12" y1="16" x2="12" y2="12"/>
                     <line x1="12" y1="8" x2="12.01" y2="8"/>
                   </svg>
-                  Puedes tener múltiples agentes configurados
+                  {{ t().detail_agent_card_note }}
                 </p>
               </div>
               
@@ -149,21 +150,21 @@ import { Conversation } from '../../models/conversation.model';
                       <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                       <polyline points="22 4 12 14.01 9 11.01"/>
                     </svg>
-                    Resumen de la llamada
+                    {{ t().detail_analysis_title }}
                   </h3>
                   
                   @if (conversacion()!.analysis?.transcript_summary) {
                     <div class="analysis-item">
                       <p class="analysis-value summary">{{ conversacion()!.analysis!.transcript_summary }}</p>
                       <p class="auto-generated-note">
-                        <small>📝 Resumen generado automáticamente por IA</small>
+                        <small>{{ t().detail_analysis_auto_generated }}</small>
                       </p>
                     </div>
                   }
                   
                   @if (conversacion()!.analysis?.call_successful) {
                     <div class="analysis-item resultado">
-                      <span class="analysis-label">Resultado de la llamada</span>
+                      <span class="analysis-label">{{ t().detail_analysis_result }}</span>
                       <span class="badge badge-lg" [ngClass]="conversacion()!.analysis!.call_successful === 'success' ? 'badge-success' : 'badge-warning'">
                         {{ traducirResultado(conversacion()!.analysis!.call_successful || 'unknown') }}
                       </span>
@@ -177,21 +178,21 @@ import { Conversation } from '../../models/conversation.model';
                 <div class="info-item">
                   <span class="info-icon">📅</span>
                   <div class="info-content">
-                    <span class="info-label">Fecha</span>
+                    <span class="info-label">{{ etiquetaFecha() }}</span>
                     <span class="info-value">{{ fechaCorta() }}</span>
                   </div>
                 </div>
                 <div class="info-item">
                   <span class="info-icon">🕐</span>
                   <div class="info-content">
-                    <span class="info-label">Hora</span>
+                    <span class="info-label">{{ etiquetaHora() }}</span>
                     <span class="info-value">{{ horaLlamada() }}</span>
                   </div>
                 </div>
                 <div class="info-item">
                   <span class="info-icon">⏱️</span>
                   <div class="info-content">
-                    <span class="info-label">Duración</span>
+                    <span class="info-label">{{ t().detail_duration }}</span>
                     <span class="info-value">{{ duracionLegible() }}</span>
                   </div>
                 </div>
@@ -657,6 +658,7 @@ export class ConversationDetailComponent implements OnInit {
   private router = inject(Router);
   private servicioElevenLabs = inject(ElevenLabsService);
   private servicioAuth = inject(AuthService);
+  private i18n = inject(I18nService);
   
   conversacion = signal<Conversation | null>(null);
   cargando = signal(false);
@@ -666,6 +668,27 @@ export class ConversationDetailComponent implements OnInit {
   
   // Nombre del agente (viene de la configuración del cliente)
   nombreAgente = 'Luz';
+  
+  // i18n
+  t = computed(() => this.i18n.t());
+  
+  textoCliente = computed(() => {
+    return this.i18n.language() === 'es' ? '👤 Cliente' : '👤 Client';
+  });
+  
+  textoErrorCarga = computed(() => {
+    return this.i18n.language() === 'es' 
+      ? 'Error al cargar la conversación' 
+      : 'Error loading conversation';
+  });
+  
+  etiquetaFecha = computed(() => {
+    return this.i18n.language() === 'es' ? 'Fecha' : 'Date';
+  });
+  
+  etiquetaHora = computed(() => {
+    return this.i18n.language() === 'es' ? 'Hora' : 'Time';
+  });
   
   ngOnInit() {
     // Obtener nombre del agente desde la sesión
@@ -694,10 +717,11 @@ export class ConversationDetailComponent implements OnInit {
       },
       error: (err) => {
         console.error('Error al cargar conversación:', err);
+        const lang = this.i18n.language();
         this.error.set(
           err.status === 404 
-            ? 'Conversación no encontrada' 
-            : 'Error al cargar la conversación'
+            ? (lang === 'es' ? 'Conversación no encontrada' : 'Conversation not found')
+            : (lang === 'es' ? 'Error al cargar la conversación' : 'Error loading conversation')
         );
         this.cargando.set(false);
       }
@@ -708,19 +732,26 @@ export class ConversationDetailComponent implements OnInit {
   
   nombreLlamada(): string {
     const conv = this.conversacion();
-    if (!conv) return 'Llamada';
+    if (!conv) return this.i18n.language() === 'es' ? 'Llamada' : 'Call';
     
     const fecha = new Date(conv.metadata.start_time_unix_secs * 1000);
-    const dia = fecha.getDate();
-    const mes = fecha.toLocaleDateString('es-ES', { month: 'long' });
-    return `Llamada del ${dia} de ${mes}`;
+    const lang = this.i18n.language();
+    
+    if (lang === 'es') {
+      const dia = fecha.getDate();
+      const mes = fecha.toLocaleDateString('es-ES', { month: 'long' });
+      return `Llamada del ${dia} de ${mes}`;
+    } else {
+      return `Call from ${fecha.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}`;
+    }
   }
   
   fechaCompleta(): string {
     const conv = this.conversacion();
     if (!conv) return '';
     
-    return new Date(conv.metadata.start_time_unix_secs * 1000).toLocaleDateString('es-ES', {
+    const locale = this.i18n.language() === 'es' ? 'es-ES' : 'en-US';
+    return new Date(conv.metadata.start_time_unix_secs * 1000).toLocaleDateString(locale, {
       weekday: 'long',
       day: 'numeric',
       month: 'long',
@@ -734,7 +765,8 @@ export class ConversationDetailComponent implements OnInit {
     const conv = this.conversacion();
     if (!conv) return '';
     
-    return new Date(conv.metadata.start_time_unix_secs * 1000).toLocaleDateString('es-ES', {
+    const locale = this.i18n.language() === 'es' ? 'es-ES' : 'en-US';
+    return new Date(conv.metadata.start_time_unix_secs * 1000).toLocaleDateString(locale, {
       day: '2-digit',
       month: 'long',
       year: 'numeric'
@@ -745,7 +777,8 @@ export class ConversationDetailComponent implements OnInit {
     const conv = this.conversacion();
     if (!conv) return '';
     
-    return new Date(conv.metadata.start_time_unix_secs * 1000).toLocaleTimeString('es-ES', {
+    const locale = this.i18n.language() === 'es' ? 'es-ES' : 'en-US';
+    return new Date(conv.metadata.start_time_unix_secs * 1000).toLocaleTimeString(locale, {
       hour: '2-digit',
       minute: '2-digit'
     });
@@ -758,13 +791,24 @@ export class ConversationDetailComponent implements OnInit {
     const secs = conv.metadata.call_duration_secs;
     const mins = Math.floor(secs / 60);
     const segs = Math.round(secs % 60);
+    const lang = this.i18n.language();
     
-    if (mins === 0) {
-      return `${segs} segundos`;
-    } else if (mins === 1) {
-      return segs > 0 ? `1 minuto ${segs} seg` : '1 minuto';
+    if (lang === 'es') {
+      if (mins === 0) {
+        return `${segs} segundos`;
+      } else if (mins === 1) {
+        return segs > 0 ? `1 minuto ${segs} seg` : '1 minuto';
+      } else {
+        return segs > 0 ? `${mins} minutos ${segs} seg` : `${mins} minutos`;
+      }
     } else {
-      return segs > 0 ? `${mins} minutos ${segs} seg` : `${mins} minutos`;
+      if (mins === 0) {
+        return `${segs} seconds`;
+      } else if (mins === 1) {
+        return segs > 0 ? `1 minute ${segs} sec` : '1 minute';
+      } else {
+        return segs > 0 ? `${mins} minutes ${segs} sec` : `${mins} minutes`;
+      }
     }
   }
   
@@ -783,36 +827,63 @@ export class ConversationDetailComponent implements OnInit {
   // ========== TRADUCCIONES ==========
   
   traducirRazonFinalizacion(razon: string | undefined): string {
-    if (!razon) return 'Normal';
+    if (!razon) return this.i18n.language() === 'es' ? 'Normal' : 'Normal';
     
-    const traducciones: Record<string, string> = {
-      'user_ended': 'El cliente finalizó',
-      'agent_ended': 'El agente finalizó',
-      'timeout': 'Tiempo agotado',
-      'error': 'Error en la llamada',
-      'user_hangup': 'El cliente colgó',
-      'agent_hangup': 'El agente colgó',
-      'normal': 'Finalización normal',
-      'completed': 'Llamada completada',
-      'no_answer': 'Sin respuesta',
-      'busy': 'Línea ocupada',
-      'failed': 'Llamada fallida',
-      'call ended by remote party': 'El cliente finalizó la llamada',
-      'call_ended_by_remote_party': 'El cliente finalizó la llamada'
+    const lang = this.i18n.language();
+    const traducciones: Record<string, Record<string, string>> = {
+      es: {
+        'user_ended': 'El cliente finalizó',
+        'agent_ended': 'El agente finalizó',
+        'timeout': 'Tiempo agotado',
+        'error': 'Error en la llamada',
+        'user_hangup': 'El cliente colgó',
+        'agent_hangup': 'El agente colgó',
+        'normal': 'Finalización normal',
+        'completed': 'Llamada completada',
+        'no_answer': 'Sin respuesta',
+        'busy': 'Línea ocupada',
+        'failed': 'Llamada fallida',
+        'call ended by remote party': 'El cliente finalizó la llamada',
+        'call_ended_by_remote_party': 'El cliente finalizó la llamada'
+      },
+      en: {
+        'user_ended': 'Client ended',
+        'agent_ended': 'Agent ended',
+        'timeout': 'Timed out',
+        'error': 'Call error',
+        'user_hangup': 'Client hung up',
+        'agent_hangup': 'Agent hung up',
+        'normal': 'Normal termination',
+        'completed': 'Call completed',
+        'no_answer': 'No answer',
+        'busy': 'Line busy',
+        'failed': 'Call failed',
+        'call ended by remote party': 'Client ended the call',
+        'call_ended_by_remote_party': 'Client ended the call'
+      }
     };
     
-    return traducciones[razon.toLowerCase()] || razon;
+    return traducciones[lang][razon.toLowerCase()] || razon;
   }
   
   traducirResultado(resultado: string): string {
-    const traducciones: Record<string, string> = {
-      'success': '✅ Exitosa',
-      'failure': '❌ No exitosa',
-      'partial': '⚠️ Parcial',
-      'unknown': 'Sin determinar'
+    const lang = this.i18n.language();
+    const traducciones: Record<string, Record<string, string>> = {
+      es: {
+        'success': '✅ Exitosa',
+        'failure': '❌ No exitosa',
+        'partial': '⚠️ Parcial',
+        'unknown': 'Sin determinar'
+      },
+      en: {
+        'success': '✅ Successful',
+        'failure': '❌ Unsuccessful',
+        'partial': '⚠️ Partial',
+        'unknown': 'Undetermined'
+      }
     };
     
-    return traducciones[resultado.toLowerCase()] || resultado;
+    return traducciones[lang][resultado.toLowerCase()] || resultado;
   }
   
   obtenerClaseEstado(estado: string): string {
@@ -825,13 +896,24 @@ export class ConversationDetailComponent implements OnInit {
   }
   
   obtenerEtiquetaEstado(estado: string): string {
-    switch (estado) {
-      case 'done': return '✅ Completada';
-      case 'processing': return '⏳ En proceso';
-      case 'failed': return '❌ Fallida';
-      case 'initiated': return '📞 Iniciada';
-      case 'timeout': return '⏱️ Tiempo agotado';
-      default: return estado;
-    }
+    const lang = this.i18n.language();
+    const etiquetas: Record<string, Record<string, string>> = {
+      es: {
+        'done': '✅ Completada',
+        'processing': '⏳ En proceso',
+        'failed': '❌ Fallida',
+        'initiated': '📞 Iniciada',
+        'timeout': '⏱️ Tiempo agotado'
+      },
+      en: {
+        'done': '✅ Completed',
+        'processing': '⏳ Processing',
+        'failed': '❌ Failed',
+        'initiated': '📞 Initiated',
+        'timeout': '⏱️ Timed out'
+      }
+    };
+    
+    return etiquetas[lang][estado] || estado;
   }
 }

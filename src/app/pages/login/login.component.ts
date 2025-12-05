@@ -1,8 +1,9 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { I18nService, Language } from '../../services/i18n.service';
 
 @Component({
   selector: 'app-login',
@@ -16,6 +17,28 @@ import { AuthService } from '../../services/auth.service';
         <div class="orb orb-3"></div>
       </div>
       
+      <!-- Language Selector -->
+      <div class="language-selector">
+        <button 
+          class="lang-btn" 
+          [class.active]="currentLang() === 'es'"
+          (click)="setLanguage('es')"
+          title="Español"
+        >
+          <span class="flag">🇪🇸</span>
+          <span class="lang-label">ES</span>
+        </button>
+        <button 
+          class="lang-btn" 
+          [class.active]="currentLang() === 'en'"
+          (click)="setLanguage('en')"
+          title="English"
+        >
+          <span class="flag">🇺🇸</span>
+          <span class="lang-label">EN</span>
+        </button>
+      </div>
+      
       <div class="login-card animate-slide-up">
         <div class="login-header">
           <div class="logo">
@@ -24,13 +47,13 @@ import { AuthService } from '../../services/auth.service';
                     fill="currentColor"/>
             </svg>
           </div>
-          <h1>Tarot Dashboard</h1>
-          <p class="subtitle">Panel de control de llamadas</p>
+          <h1>{{ t().login_title }}</h1>
+          <p class="subtitle">{{ t().login_subtitle }}</p>
         </div>
         
         <form (ngSubmit)="onLogin()" class="login-form">
           <div class="form-group">
-            <label for="username">Usuario</label>
+            <label for="username">{{ t().login_username }}</label>
             <div class="input-with-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
@@ -42,7 +65,7 @@ import { AuthService } from '../../services/auth.service';
                 class="input"
                 [(ngModel)]="username"
                 name="username"
-                placeholder="Ingresa tu usuario"
+                [placeholder]="t().login_username_placeholder"
                 required
                 autocomplete="username"
               />
@@ -50,7 +73,7 @@ import { AuthService } from '../../services/auth.service';
           </div>
           
           <div class="form-group">
-            <label for="password">Contraseña</label>
+            <label for="password">{{ t().login_password }}</label>
             <div class="input-with-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
@@ -62,7 +85,7 @@ import { AuthService } from '../../services/auth.service';
                 class="input"
                 [(ngModel)]="password"
                 name="password"
-                placeholder="Ingresa tu contraseña"
+                [placeholder]="t().login_password_placeholder"
                 required
                 autocomplete="current-password"
               />
@@ -104,21 +127,21 @@ import { AuthService } from '../../services/auth.service';
           >
             @if (isLoading()) {
               <div class="spinner-small"></div>
-              Ingresando...
+              {{ t().login_loading }}
             } @else {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
                 <polyline points="10 17 15 12 10 7"/>
                 <line x1="15" y1="12" x2="3" y2="12"/>
               </svg>
-              Ingresar
+              {{ t().login_button }}
             }
           </button>
         </form>
         
         <div class="login-footer">
           <div class="powered-by">
-            <span>Conectado con</span>
+            <span>{{ t().login_powered_by }}</span>
             <strong>ElevenLabs</strong>
           </div>
         </div>
@@ -183,6 +206,55 @@ import { AuthService } from '../../services/auth.service';
       25% { transform: translate(30px, -30px) scale(1.1); }
       50% { transform: translate(-20px, 20px) scale(0.95); }
       75% { transform: translate(20px, 30px) scale(1.05); }
+    }
+    
+    /* Language Selector */
+    .language-selector {
+      position: fixed;
+      top: 24px;
+      right: 24px;
+      z-index: 100;
+      display: flex;
+      gap: 8px;
+      background: rgba(26, 26, 46, 0.8);
+      backdrop-filter: blur(10px);
+      padding: 6px;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+    }
+    
+    .lang-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border: none;
+      background: transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      color: var(--text-secondary);
+      font-weight: 500;
+      
+      .flag {
+        font-size: 1.1rem;
+      }
+      
+      .lang-label {
+        font-size: 0.85rem;
+        letter-spacing: 0.5px;
+      }
+      
+      &:hover {
+        background: rgba(108, 92, 231, 0.15);
+        color: var(--text-primary);
+      }
+      
+      &.active {
+        background: var(--color-primary);
+        color: white;
+        box-shadow: 0 2px 8px rgba(108, 92, 231, 0.4);
+      }
     }
     
     .login-card {
@@ -366,12 +438,18 @@ import { AuthService } from '../../services/auth.service';
       .login-header h1 {
         font-size: 1.75rem;
       }
+      
+      .language-selector {
+        top: 16px;
+        right: 16px;
+      }
     }
   `]
 })
 export class LoginComponent {
   private router = inject(Router);
   private authService = inject(AuthService);
+  private i18n = inject(I18nService);
   
   username = '';
   password = '';
@@ -380,9 +458,17 @@ export class LoginComponent {
   isLoading = signal(false);
   error = signal<string | null>(null);
   
+  // i18n
+  t = computed(() => this.i18n.t());
+  currentLang = computed(() => this.i18n.language());
+  
+  setLanguage(lang: Language) {
+    this.i18n.setLanguage(lang);
+  }
+  
   onLogin() {
     if (!this.username || !this.password) {
-      this.error.set('Por favor completa todos los campos');
+      this.error.set(this.t().login_error_empty);
       return;
     }
     
@@ -398,7 +484,14 @@ export class LoginComponent {
       if (result.success) {
         this.router.navigate(['/dashboard']);
       } else {
-        this.error.set(result.error || 'Error al iniciar sesión');
+        // Traducir errores
+        if (result.error === 'Usuario no encontrado') {
+          this.error.set(this.t().login_error_user_not_found);
+        } else if (result.error === 'Contraseña incorrecta') {
+          this.error.set(this.t().login_error_wrong_password);
+        } else {
+          this.error.set(result.error || this.t().common_error);
+        }
       }
     }, 500);
   }

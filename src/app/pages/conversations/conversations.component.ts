@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { LayoutComponent } from '../../components/layout/layout.component';
 import { ElevenLabsService } from '../../services/elevenlabs.service';
 import { AuthService } from '../../services/auth.service';
+import { I18nService } from '../../services/i18n.service';
 import { ConversationListItem } from '../../models/conversation.model';
 
 @Component({
@@ -16,8 +17,8 @@ import { ConversationListItem } from '../../models/conversation.model';
       <div class="conversations-page animate-fade-in">
         <header class="page-header">
           <div>
-            <h1>Conversaciones</h1>
-            <p class="text-secondary">Historial completo de llamadas</p>
+            <h1>{{ t().conversations_title }}</h1>
+            <p class="text-secondary">{{ subtitulo() }}</p>
           </div>
           <div class="header-actions">
             <div class="search-box">
@@ -28,7 +29,7 @@ import { ConversationListItem } from '../../models/conversation.model';
               <input 
                 type="text" 
                 class="input search-input"
-                placeholder="Buscar por ID..."
+                [placeholder]="t().conversations_search"
                 [(ngModel)]="terminoBusqueda"
                 (input)="aplicarFiltros()"
               />
@@ -50,7 +51,7 @@ import { ConversationListItem } from '../../models/conversation.model';
             [class.active]="filtroEstado() === null"
             (click)="cambiarFiltroEstado(null)"
           >
-            Todas
+            {{ t().conversations_filter_all }}
           </button>
           <button 
             class="filter-btn"
@@ -58,7 +59,7 @@ import { ConversationListItem } from '../../models/conversation.model';
             (click)="cambiarFiltroEstado('done')"
           >
             <span class="dot dot-success"></span>
-            Exitosas
+            {{ etiquetaExitosas() }}
           </button>
           <button 
             class="filter-btn"
@@ -66,7 +67,7 @@ import { ConversationListItem } from '../../models/conversation.model';
             (click)="cambiarFiltroEstado('processing')"
           >
             <span class="dot dot-warning"></span>
-            En proceso
+            {{ etiquetaProcesando() }}
           </button>
           <button 
             class="filter-btn"
@@ -74,22 +75,22 @@ import { ConversationListItem } from '../../models/conversation.model';
             (click)="cambiarFiltroEstado('failed')"
           >
             <span class="dot dot-error"></span>
-            Fallidas
+            {{ etiquetaFallidas() }}
           </button>
         </div>
         
         @if (cargando()) {
           <div class="loading-state">
             <div class="spinner"></div>
-            <p>Cargando conversaciones...</p>
+            <p>{{ t().common_loading }}</p>
           </div>
         } @else if (conversacionesFiltradas().length === 0) {
           <div class="empty-state">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
             </svg>
-            <h3>No hay conversaciones</h3>
-            <p>No se encontraron conversaciones con los filtros seleccionados</p>
+            <h3>{{ t().conversations_no_results }}</h3>
+            <p>{{ mensajeVacio() }}</p>
           </div>
         } @else {
           <div class="conversations-table-container">
@@ -97,10 +98,10 @@ import { ConversationListItem } from '../../models/conversation.model';
               <thead>
                 <tr>
                   <th>ID</th>
-                  <th>Fecha</th>
-                  <th>Duración</th>
-                  <th>Mensajes</th>
-                  <th>Estado</th>
+                  <th>{{ encabezadoFecha() }}</th>
+                  <th>{{ t().conversations_duration }}</th>
+                  <th>{{ t().conversations_messages }}</th>
+                  <th>{{ t().detail_status }}</th>
                   <th></th>
                 </tr>
               </thead>
@@ -111,7 +112,7 @@ import { ConversationListItem } from '../../models/conversation.model';
                       <div class="conv-id-cell">
                         <span class="conv-id">{{ conv.conversation_id | slice:0:12 }}...</span>
                         @if (conv.user_id) {
-                          <span class="user-id">Usuario: {{ conv.user_id | slice:0:10 }}...</span>
+                          <span class="user-id">{{ textoUsuario() }}: {{ conv.user_id | slice:0:10 }}...</span>
                         }
                       </div>
                     </td>
@@ -145,10 +146,10 @@ import { ConversationListItem } from '../../models/conversation.model';
           
           <!-- Info de paginación -->
           <div class="pagination-info">
-            <span>Mostrando {{ conversacionesFiltradas().length }} de {{ todasLasConversaciones().length }} conversaciones</span>
+            <span>{{ textoPaginacion() }}</span>
             @if (hayMas()) {
               <button class="btn btn-secondary btn-sm" (click)="cargarMas()">
-                Cargar más
+                {{ textoCargarMas() }}
               </button>
             }
           </div>
@@ -419,6 +420,7 @@ import { ConversationListItem } from '../../models/conversation.model';
 export class ConversationsComponent implements OnInit {
   private servicioElevenLabs = inject(ElevenLabsService);
   private servicioAuth = inject(AuthService);
+  private i18n = inject(I18nService);
   
   // Datos
   todasLasConversaciones = signal<ConversationListItem[]>([]);
@@ -430,6 +432,55 @@ export class ConversationsComponent implements OnInit {
   terminoBusqueda = '';
   
   private cursor: string | undefined;
+  
+  // i18n
+  t = computed(() => this.i18n.t());
+  
+  subtitulo = computed(() => {
+    const lang = this.i18n.language();
+    return lang === 'es' ? 'Historial completo de llamadas' : 'Complete call history';
+  });
+  
+  etiquetaExitosas = computed(() => {
+    return this.i18n.language() === 'es' ? 'Exitosas' : 'Successful';
+  });
+  
+  etiquetaProcesando = computed(() => {
+    return this.i18n.language() === 'es' ? 'En proceso' : 'Processing';
+  });
+  
+  etiquetaFallidas = computed(() => {
+    return this.i18n.language() === 'es' ? 'Fallidas' : 'Failed';
+  });
+  
+  mensajeVacio = computed(() => {
+    const lang = this.i18n.language();
+    return lang === 'es' 
+      ? 'No se encontraron conversaciones con los filtros seleccionados' 
+      : 'No conversations found with the selected filters';
+  });
+  
+  encabezadoFecha = computed(() => {
+    return this.i18n.language() === 'es' ? 'Fecha' : 'Date';
+  });
+  
+  textoUsuario = computed(() => {
+    return this.i18n.language() === 'es' ? 'Usuario' : 'User';
+  });
+  
+  textoPaginacion = computed(() => {
+    const lang = this.i18n.language();
+    const filtradas = this.conversacionesFiltradas().length;
+    const total = this.todasLasConversaciones().length;
+    
+    return lang === 'es' 
+      ? `Mostrando ${filtradas} de ${total} conversaciones`
+      : `Showing ${filtradas} of ${total} conversations`;
+  });
+  
+  textoCargarMas = computed(() => {
+    return this.i18n.language() === 'es' ? 'Cargar más' : 'Load more';
+  });
   
   // Conversaciones filtradas (calculado automáticamente)
   conversacionesFiltradas = computed(() => {
@@ -513,7 +564,8 @@ export class ConversationsComponent implements OnInit {
   }
   
   formatearFecha(timestampUnix: number): string {
-    return new Date(timestampUnix * 1000).toLocaleDateString('es-ES', {
+    const locale = this.i18n.language() === 'es' ? 'es-ES' : 'en-US';
+    return new Date(timestampUnix * 1000).toLocaleDateString(locale, {
       day: '2-digit',
       month: 'short',
       year: 'numeric'
@@ -521,7 +573,8 @@ export class ConversationsComponent implements OnInit {
   }
   
   formatearHora(timestampUnix: number): string {
-    return new Date(timestampUnix * 1000).toLocaleTimeString('es-ES', {
+    const locale = this.i18n.language() === 'es' ? 'es-ES' : 'en-US';
+    return new Date(timestampUnix * 1000).toLocaleTimeString(locale, {
       hour: '2-digit',
       minute: '2-digit'
     });
@@ -544,12 +597,13 @@ export class ConversationsComponent implements OnInit {
   }
   
   obtenerEtiquetaEstado(estado: string): string {
+    const lang = this.i18n.language();
     switch (estado) {
-      case 'done': return 'Exitoso';
-      case 'processing': return 'En proceso';
-      case 'failed': return 'Fallido';
-      case 'initiated': return 'Iniciado';
-      case 'timeout': return 'Tiempo agotado';
+      case 'done': return lang === 'es' ? 'Exitoso' : 'Success';
+      case 'processing': return lang === 'es' ? 'En proceso' : 'Processing';
+      case 'failed': return lang === 'es' ? 'Fallido' : 'Failed';
+      case 'initiated': return lang === 'es' ? 'Iniciado' : 'Initiated';
+      case 'timeout': return lang === 'es' ? 'Tiempo agotado' : 'Timeout';
       default: return estado;
     }
   }

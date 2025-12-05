@@ -2,6 +2,7 @@ import { Component, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { I18nService, Language } from '../../services/i18n.service';
 
 @Component({
   selector: 'app-sidebar',
@@ -30,18 +31,38 @@ import { AuthService } from '../../services/auth.service';
             <rect x="14" y="14" width="7" height="7"/>
             <rect x="3" y="14" width="7" height="7"/>
           </svg>
-          <span>Dashboard</span>
+          <span>{{ t().sidebar_dashboard }}</span>
         </a>
         
         <a routerLink="/conversations" routerLinkActive="active" class="nav-item">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
           </svg>
-          <span>Conversaciones</span>
+          <span>{{ t().sidebar_conversations }}</span>
         </a>
       </nav>
       
       <div class="sidebar-footer">
+        <!-- Language Toggle -->
+        <div class="language-toggle">
+          <button 
+            class="lang-btn" 
+            [class.active]="currentLang() === 'es'"
+            (click)="setLanguage('es')"
+            title="Español"
+          >
+            🇪🇸 ES
+          </button>
+          <button 
+            class="lang-btn" 
+            [class.active]="currentLang() === 'en'"
+            (click)="setLanguage('en')"
+            title="English"
+          >
+            🇺🇸 EN
+          </button>
+        </div>
+        
         <div class="agent-info">
           <div class="agent-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -63,7 +84,7 @@ import { AuthService } from '../../services/auth.service';
             <polyline points="16 17 21 12 16 7"/>
             <line x1="21" y1="12" x2="9" y2="12"/>
           </svg>
-          <span>Cerrar sesión</span>
+          <span>{{ t().sidebar_logout }}</span>
         </button>
       </div>
     </aside>
@@ -167,6 +188,38 @@ import { AuthService } from '../../services/auth.service';
       border-top: 1px solid var(--border-color);
     }
     
+    .language-toggle {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      padding: 6px;
+      background: var(--bg-input);
+      border-radius: var(--border-radius);
+    }
+    
+    .lang-btn {
+      flex: 1;
+      padding: 8px 12px;
+      border: none;
+      background: transparent;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      transition: all 0.2s ease;
+      
+      &:hover {
+        color: var(--text-primary);
+        background: rgba(108, 92, 231, 0.1);
+      }
+      
+      &.active {
+        background: var(--color-primary);
+        color: white;
+      }
+    }
+    
     .agent-info {
       display: flex;
       align-items: center;
@@ -233,10 +286,19 @@ import { AuthService } from '../../services/auth.service';
 export class SidebarComponent {
   private authService = inject(AuthService);
   private router = inject(Router);
+  private i18n = inject(I18nService);
   
   clientName = computed(() => this.authService.currentClient()?.clientName || 'Cliente');
   agentName = computed(() => this.authService.currentClient()?.agentName || 'Agente');
   username = computed(() => this.authService.currentClient()?.username || '');
+  
+  // i18n
+  t = computed(() => this.i18n.t());
+  currentLang = computed(() => this.i18n.language());
+  
+  setLanguage(lang: Language) {
+    this.i18n.setLanguage(lang);
+  }
   
   onLogout() {
     this.authService.logout();

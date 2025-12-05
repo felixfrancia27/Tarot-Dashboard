@@ -4,6 +4,7 @@ import { RouterModule } from '@angular/router';
 import { LayoutComponent } from '../../components/layout/layout.component';
 import { ElevenLabsService } from '../../services/elevenlabs.service';
 import { AuthService } from '../../services/auth.service';
+import { I18nService } from '../../services/i18n.service';
 import { ConversationListItem } from '../../models/conversation.model';
 
 @Component({
@@ -15,8 +16,8 @@ import { ConversationListItem } from '../../models/conversation.model';
       <div class="dashboard animate-fade-in">
         <header class="page-header">
           <div>
-            <h1>Dashboard</h1>
-            <p class="text-secondary">Resumen de actividad de tu agente</p>
+            <h1>{{ t().dashboard_title }}</h1>
+            <p class="text-secondary">{{ subtitulo() }}</p>
           </div>
           <button class="btn btn-secondary" (click)="cargarDatos()" [disabled]="cargando()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" [class.animate-spin]="cargando()">
@@ -24,14 +25,14 @@ import { ConversationListItem } from '../../models/conversation.model';
               <path d="M1 20v-6h6"/>
               <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
             </svg>
-            Actualizar
+            {{ t().common_retry }}
           </button>
         </header>
         
         @if (cargando()) {
           <div class="loading-state">
             <div class="spinner"></div>
-            <p>Cargando estadísticas...</p>
+            <p>{{ t().dashboard_loading }}</p>
           </div>
         } @else {
           <!-- Tarjetas de Estadísticas -->
@@ -44,7 +45,7 @@ import { ConversationListItem } from '../../models/conversation.model';
               </div>
               <div class="stat-content">
                 <span class="stat-value">{{ totalLlamadas() }}</span>
-                <span class="stat-label">Total Llamadas</span>
+                <span class="stat-label">{{ t().dashboard_total_calls }}</span>
               </div>
             </div>
             
@@ -56,8 +57,8 @@ import { ConversationListItem } from '../../models/conversation.model';
                 </svg>
               </div>
               <div class="stat-content">
-                <span class="stat-value">{{ tiempoTotalMinutos() }} min</span>
-                <span class="stat-label">Tiempo Total</span>
+                <span class="stat-value">{{ tiempoTotalMinutos() }} {{ t().common_minutes }}</span>
+                <span class="stat-label">{{ t().dashboard_total_duration }}</span>
               </div>
             </div>
             
@@ -69,7 +70,7 @@ import { ConversationListItem } from '../../models/conversation.model';
               </div>
               <div class="stat-content">
                 <span class="stat-value">{{ totalMensajes() }}</span>
-                <span class="stat-label">Total Mensajes</span>
+                <span class="stat-label">{{ t().dashboard_total_messages }}</span>
               </div>
             </div>
             
@@ -82,7 +83,7 @@ import { ConversationListItem } from '../../models/conversation.model';
               </div>
               <div class="stat-content">
                 <span class="stat-value">{{ tasaExito() }}%</span>
-                <span class="stat-label">Tasa de Éxito</span>
+                <span class="stat-label">{{ t().dashboard_success_rate }}</span>
               </div>
             </div>
           </div>
@@ -91,26 +92,26 @@ import { ConversationListItem } from '../../models/conversation.model';
           <div class="secondary-stats">
             <div class="secondary-stat">
               <span class="secondary-value">{{ llamadasHoy() }}</span>
-              <span class="secondary-label">Llamadas hoy</span>
+              <span class="secondary-label">{{ t().dashboard_calls_today }}</span>
             </div>
             <div class="divider"></div>
             <div class="secondary-stat">
               <span class="secondary-value">{{ llamadasEstaSemana() }}</span>
-              <span class="secondary-label">Esta semana</span>
+              <span class="secondary-label">{{ t().dashboard_calls_week }}</span>
             </div>
             <div class="divider"></div>
             <div class="secondary-stat">
-              <span class="secondary-value">{{ duracionPromedio() }} min</span>
-              <span class="secondary-label">Duración promedio</span>
+              <span class="secondary-value">{{ duracionPromedio() }} {{ t().common_minutes }}</span>
+              <span class="secondary-label">{{ t().dashboard_avg_duration }}</span>
             </div>
           </div>
           
           <!-- Conversaciones Recientes -->
           <section class="recent-section">
             <div class="section-header">
-              <h2>Conversaciones Recientes</h2>
+              <h2>{{ t().dashboard_recent_calls }}</h2>
               <a routerLink="/conversations" class="view-all">
-                Ver todas
+                {{ t().dashboard_view_all }}
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polyline points="9 18 15 12 9 6"/>
                 </svg>
@@ -122,7 +123,7 @@ import { ConversationListItem } from '../../models/conversation.model';
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                 </svg>
-                <p>No hay conversaciones recientes</p>
+                <p>{{ t().dashboard_no_calls }}</p>
               </div>
             } @else {
               <div class="conversations-list">
@@ -483,12 +484,23 @@ import { ConversationListItem } from '../../models/conversation.model';
 export class DashboardComponent implements OnInit {
   private servicioElevenLabs = inject(ElevenLabsService);
   private servicioAuth = inject(AuthService);
+  private i18n = inject(I18nService);
   
   // Lista completa de conversaciones para calcular estadísticas
   private todasLasConversaciones = signal<ConversationListItem[]>([]);
   
   // Estados de la UI
   cargando = signal(false);
+  
+  // i18n
+  t = computed(() => this.i18n.t());
+  
+  subtitulo = computed(() => {
+    const lang = this.i18n.language();
+    return lang === 'es' 
+      ? 'Resumen de actividad de tu agente' 
+      : 'Your agent activity summary';
+  });
   
   // Conversaciones recientes (las últimas 5)
   conversacionesRecientes = computed(() => {
@@ -594,19 +606,20 @@ export class DashboardComponent implements OnInit {
     const fecha = new Date(timestampUnix * 1000);
     const ahora = new Date();
     const diferencia = ahora.getTime() - fecha.getTime();
+    const lang = this.i18n.language();
     
     const minutos = Math.floor(diferencia / 60000);
     const horas = Math.floor(diferencia / 3600000);
     const dias = Math.floor(diferencia / 86400000);
     
     if (minutos < 60) {
-      return `Hace ${minutos} min`;
+      return lang === 'es' ? `Hace ${minutos} min` : `${minutos} min ago`;
     } else if (horas < 24) {
-      return `Hace ${horas} horas`;
+      return lang === 'es' ? `Hace ${horas} horas` : `${horas} hours ago`;
     } else if (dias < 7) {
-      return `Hace ${dias} días`;
+      return lang === 'es' ? `Hace ${dias} días` : `${dias} days ago`;
     } else {
-      return fecha.toLocaleDateString('es-ES', { 
+      return fecha.toLocaleDateString(lang === 'es' ? 'es-ES' : 'en-US', { 
         day: '2-digit', 
         month: 'short',
         hour: '2-digit',
@@ -632,12 +645,13 @@ export class DashboardComponent implements OnInit {
   }
   
   obtenerEtiquetaEstado(estado: string): string {
+    const lang = this.i18n.language();
     switch (estado) {
-      case 'done': return 'Exitoso';
-      case 'processing': return 'En proceso';
-      case 'failed': return 'Fallido';
-      case 'initiated': return 'Iniciado';
-      case 'timeout': return 'Tiempo agotado';
+      case 'done': return lang === 'es' ? 'Exitoso' : 'Success';
+      case 'processing': return lang === 'es' ? 'En proceso' : 'Processing';
+      case 'failed': return lang === 'es' ? 'Fallido' : 'Failed';
+      case 'initiated': return lang === 'es' ? 'Iniciado' : 'Initiated';
+      case 'timeout': return lang === 'es' ? 'Tiempo agotado' : 'Timeout';
       default: return estado;
     }
   }
